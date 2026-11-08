@@ -1,4 +1,8 @@
 from fastapi import APIRouter
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.db.session import engine
 
 router = APIRouter(tags=["health"])
 
@@ -10,5 +14,9 @@ def health() -> dict[str, str]:
 
 @router.get("/ready", summary="Readiness check")
 def readiness() -> dict[str, str]:
-    # Database connectivity is added with the first persistence increment.
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        return {"status": "not_ready"}
     return {"status": "ready"}
