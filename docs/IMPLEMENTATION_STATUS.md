@@ -33,6 +33,10 @@
 - `GET /api/v1/transactions/summary`
 
 ## Latest increment (2026-11-08)
+- Implemented transaction edit (`PATCH /transactions/{id}`), reversal (`POST /transactions/{id}/reverse`), and audit history (`GET /transactions/{id}/audit`).
+- Added immutable event snapshots for create/update/reversal, reason capture for reversals, self-link metadata on reversal transactions, and Alembic migration `0002_transaction_audit`.
+- Reversal posts a compensating transaction with the opposite type; it does not delete the original. Reversed entries cannot be edited/reversed again.
+- Added tests for edit → reversal balance neutrality, audit snapshots, duplicate reversal conflict, and cross-user reversal/audit access.
 - Added PATCH category endpoint for user-scoped rename and active/inactive toggling; duplicate category names are rejected within user+kind.
 - Transaction creation now rejects inactive categories; historical transactions remain linked to the category.
 - Added API tests for category rename/deactivation, inactive-category assignment rejection, and duplicate-name conflict.
@@ -50,7 +54,7 @@ Tests have not been executed from this environment because the runtime cannot re
 
 ## Still remaining in Phase 1
 - [ ] Verify/fix CI failures
-- [ ] Transaction update/reversal with audit trail
+- [x] Transaction update/reversal with audit trail (CI execution pending)
 - [x] Category update/deactivation (CI execution pending)
 - [x] Cross-user authorization regression tests added (CI execution pending)
 - [ ] API pagination/validation consistency
