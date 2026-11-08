@@ -47,7 +47,11 @@ python -m pytest
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 - Authenticated account CRUD/read balance routes
-- Authenticated income/expense transaction create/list routes
+- Authenticated income/expense transaction create/list/detail routes
+- Transaction edit endpoint with before/after audit snapshots
+- Transaction reversal endpoint (compensating transaction; original retained)
+- Transaction audit-history endpoint
+- Category create/list/rename/deactivate routes
 
 ## Security notes
 - Passwords are hashed with Argon2 via pwdlib.
