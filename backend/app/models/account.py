@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -27,7 +27,7 @@ class Account(Base):
     name: Mapped[str] = mapped_column(String(100))
     account_type: Mapped[AccountType]
     currency: Mapped[str] = mapped_column(String(3), default="INR")
-    opening_balance_paise: Mapped[int] = mapped_column(default=0)
+    opening_balance_paise: Mapped[int] = mapped_column(BigInteger, default=0)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
