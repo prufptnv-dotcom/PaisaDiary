@@ -1,0 +1,14 @@
+# Alembic migrations
+
+Create a revision:
+```powershell
+cd backend
+alembic revision --autogenerate -m "initial finance schema"
+```
+
+Review generated migration carefully before applying:
+```powershell
+alembic upgrade head
+```
+
+Do not apply migrations to production without reviewing the generated SQL and backing up the database.
