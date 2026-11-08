@@ -10,6 +10,11 @@ class CategoryCreate(BaseModel):
     kind: CategoryKind
 
 
+class CategoryUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    is_active: bool | None = None
+
+
 class CategoryResponse(BaseModel):
     id: UUID
     name: str
