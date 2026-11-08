@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -27,7 +27,7 @@ class Transaction(Base):
         ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
     )
     transaction_type: Mapped[TransactionType]
-    amount_paise: Mapped[int]
+    amount_paise: Mapped[int] = mapped_column(BigInteger)
     currency: Mapped[str] = mapped_column(String(3), default="INR")
     description: Mapped[str] = mapped_column(String(240))
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
