@@ -204,7 +204,7 @@ def reverse_transaction(
     original.is_reversed = True
     reversal_type = TransactionType.EXPENSE if original.transaction_type == TransactionType.INCOME else TransactionType.INCOME
     reversal = Transaction(
-        user_id=current_user.id, account_id=original.account_id, category_id=original.category_id,
+        user_id=current_user.id, account_id=original.account_id, category_id=None,
         transaction_type=reversal_type, amount_paise=original.amount_paise,
         currency=original.currency, description=f"Reversal: {original.description}"[:240],
         notes=f"Reversal of transaction {original.id}. Reason: {payload.reason.strip()}",
