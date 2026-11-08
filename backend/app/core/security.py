@@ -18,7 +18,7 @@ def verify_password(password: str, hashed: str) -> bool:
     return password_hash.verify(password, hashed)
 
 
-def create_access_token(user_id: UUID) -> tuple[str, int]:
+def create_access_token(user_id: UUID, token_version: int = 0) -> tuple[str, int]:
     expires_in = 15 * 60
     now = datetime.now(timezone.utc)
     payload = {
@@ -26,6 +26,7 @@ def create_access_token(user_id: UUID) -> tuple[str, int]:
         "iat": now,
         "exp": now + timedelta(seconds=expires_in),
         "type": "access",
+        "ver": token_version,
     }
     token = jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return token, expires_in
