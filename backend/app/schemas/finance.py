@@ -51,6 +51,8 @@ class TransactionResponse(BaseModel):
     description: str
     notes: str | None
     occurred_at: datetime
+    is_reversed: bool
+    reversal_of_id: UUID | None
 
     model_config = ConfigDict(from_attributes=True)
 
