@@ -210,7 +210,7 @@ def reverse_transaction(
         user_id=current_user.id, account_id=original.account_id, category_id=None,
         transaction_type=reversal_type, amount_paise=original.amount_paise,
         currency=original.currency, description=f"Reversal: {original.description}"[:240],
-        notes=f"Reversal of transaction {original.id}. Reason: {payload.reason.strip()}",
+        notes=f"Reversal of transaction {original.id}. Reason: {reason}",
         occurred_at=datetime.now(timezone.utc), reversal_of_id=original.id,
     )
     db.add(reversal)
