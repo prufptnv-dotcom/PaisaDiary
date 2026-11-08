@@ -136,3 +136,63 @@ def test_cross_user_account_and_transaction_access_is_hidden() -> None:
     ).json()
     assert filtered_transactions == []
 
+
+def test_category_update_deactivation_and_inactive_assignment() -> None:
+    category_response = client.post("/api/v1/categories", json={
+        "name": "Temporary Category",
+        "kind": "expense",
+    })
+    assert category_response.status_code == 201
+    category_id = category_response.json()["id"]
+
+    renamed = client.patch(f"/api/v1/categories/{category_id}", json={
+        "name": "Updated Temporary Category",
+    })
+    assert renamed.status_code == 200
+    assert renamed.json()["name"] == "Updated Temporary Category"
+
+    deactivated = client.patch(f"/api/v1/categories/{category_id}", json={
+        "is_active": False,
+    })
+    assert deactivated.status_code == 200
+    assert deactivated.json()["is_active"] is False
+
+    listed_ids = {item["id"] for item in client.get("/api/v1/categories").json()}
+    assert category_id not in listed_ids
+
+    account_response = client.post("/api/v1/accounts", json={
+        "name": "Category Test Cash",
+        "account_type": "cash",
+        "opening_balance_paise": 0,
+        "currency": "INR",
+    })
+    assert account_response.status_code == 201
+
+    transaction_response = client.post("/api/v1/transactions", json={
+        "account_id": account_response.json()["id"],
+        "category_id": category_id,
+        "transaction_type": "expense",
+        "amount_paise": 100,
+        "currency": "INR",
+        "description": "Must not use inactive category",
+    })
+    assert transaction_response.status_code == 404
+
+
+def test_category_update_rejects_duplicate_name() -> None:
+    first = client.post("/api/v1/categories", json={
+        "name": "Duplicate Candidate A",
+        "kind": "expense",
+    })
+    second = client.post("/api/v1/categories", json={
+        "name": "Duplicate Candidate B",
+        "kind": "expense",
+    })
+    assert first.status_code == 201
+    assert second.status_code == 201
+
+    duplicate = client.patch(f"/api/v1/categories/{second.json()['id']}", json={
+        "name": "Duplicate Candidate A",
+    })
+    assert duplicate.status_code == 409
+
