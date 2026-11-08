@@ -7,6 +7,7 @@ from app.core.security import create_access_token, hash_password, verify_passwor
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from app.services.default_categories import seed_default_categories
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -22,6 +23,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenRe
                 password_hash=hash_password(payload.password))
     db.add(user)
     try:
+        db.flush()
+        seed_default_categories(db, user.id)
         db.commit()
         db.refresh(user)
     except IntegrityError:
