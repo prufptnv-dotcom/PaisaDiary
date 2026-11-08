@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://paisadiary:paisadiary@localhost:5432/paisadiary"
+    # Replace this with a high-entropy secret in .env before deployment.
+    jwt_secret_key: str = "local-development-only-change-this-secret"
+    jwt_algorithm: str = "HS256"
 
     model_config = SettingsConfigDict(
         env_file=".env",
