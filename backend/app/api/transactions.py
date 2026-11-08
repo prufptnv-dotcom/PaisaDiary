@@ -148,4 +148,88 @@ def get_transaction(transaction_id: UUID, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
 
+@router.patch("/{transaction_id}", response_model=TransactionResponse)
+def update_transaction(
+    transaction_id: UUID, payload: TransactionUpdate,
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user),
+) -> Transaction:
+    transaction = db.scalar(select(Transaction).where(
+        Transaction.id == transaction_id, Transaction.user_id == current_user.id,
+    ).with_for_update())
+    if transaction is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    if transaction.is_reversed or transaction.reversal_of_id is not None:
+        raise HTTPException(status_code=409, detail="Reversed transactions cannot be edited")
+
+    changes = payload.model_dump(exclude_unset=True)
+    if not changes:
+        return transaction
+    if "category_id" in changes and changes["category_id"] is not None:
+        category = db.scalar(select(Category).where(
+            Category.id == changes["category_id"], Category.user_id == current_user.id,
+            Category.kind == transaction.transaction_type, Category.is_active.is_(True),
+        ))
+        if category is None:
+            raise HTTPException(status_code=404, detail="Active category not found for transaction type")
+
+    before = _snapshot(transaction)
+    for key, value in changes.items():
+        if key == "description" and value is not None:
+            value = value.strip()
+            if not value:
+                raise HTTPException(status_code=422, detail="Description cannot be blank")
+        setattr(transaction, key, value)
+    _audit(db, current_user.id, transaction.id, "updated", None, before, _snapshot(transaction))
+    db.commit()
+    db.refresh(transaction)
+    return transaction
+
+
+@router.post("/{transaction_id}/reverse", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
+def reverse_transaction(
+    transaction_id: UUID, payload: TransactionReverse,
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user),
+) -> Transaction:
+    original = db.scalar(select(Transaction).where(
+        Transaction.id == transaction_id, Transaction.user_id == current_user.id,
+    ).with_for_update())
+    if original is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    if original.is_reversed:
+        raise HTTPException(status_code=409, detail="Transaction has already been reversed")
+    if original.reversal_of_id is not None:
+        raise HTTPException(status_code=409, detail="A reversal transaction cannot itself be reversed")
+
+    before = _snapshot(original)
+    original.is_reversed = True
+    reversal_type = TransactionType.EXPENSE if original.transaction_type == TransactionType.INCOME else TransactionType.INCOME
+    reversal = Transaction(
+        user_id=current_user.id, account_id=original.account_id, category_id=original.category_id,
+        transaction_type=reversal_type, amount_paise=original.amount_paise,
+        currency=original.currency, description=f"Reversal: {original.description}"[:240],
+        notes=f"Reversal of transaction {original.id}. Reason: {payload.reason.strip()}",
+        occurred_at=datetime.now(timezone.utc), reversal_of_id=original.id,
+    )
+    db.add(reversal)
+    db.flush()
+    _audit(db, current_user.id, original.id, "reversed", payload.reason.strip(), before, _snapshot(original))
+    _audit(db, current_user.id, reversal.id, "reversal_created", payload.reason.strip(), None, _snapshot(reversal))
+    db.commit()
+    db.refresh(reversal)
+    return reversal
+
+
+@router.get("/{transaction_id}/audit", response_model=list[TransactionAuditResponse])
+def transaction_audit_history(
+    transaction_id: UUID, db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[TransactionAudit]:
+    exists = db.scalar(select(Transaction.id).where(
+        Transaction.id == transaction_id, Transaction.user_id == current_user.id,
+    ))
+    if exists is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return list(db.scalars(select(TransactionAudit).where(
+        TransactionAudit.transaction_id == transaction_id, TransactionAudit.user_id == current_user.id,
+    ).order_by(TransactionAudit.created_at.asc())).all())
 
