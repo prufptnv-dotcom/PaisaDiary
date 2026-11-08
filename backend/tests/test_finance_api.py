@@ -84,3 +84,55 @@ def test_accounts_are_user_scoped() -> None:
     response = client.get("/api/v1/accounts")
     assert response.status_code == 200
     assert all(account["name"] == "Cash" for account in response.json())
+
+
+def test_cross_user_account_and_transaction_access_is_hidden() -> None:
+    from app.models.account import Account, AccountType
+    from app.models.transaction import Transaction, TransactionType
+
+    other_user = User(
+        id=uuid4(),
+        email=f"other-{uuid4()}@example.com",
+        display_name="Other User",
+        password_hash="test-hash",
+    )
+    other_account = Account(
+        id=uuid4(),
+        user_id=other_user.id,
+        name="Private Other Cash",
+        account_type=AccountType.CASH,
+        currency="INR",
+        opening_balance_paise=90_000,
+        is_active=True,
+    )
+    other_transaction = Transaction(
+        id=uuid4(),
+        user_id=other_user.id,
+        account_id=other_account.id,
+        transaction_type=TransactionType.EXPENSE,
+        amount_paise=1_500,
+        currency="INR",
+        description="Private Other Transaction",
+    )
+    db.add_all([other_user, other_account, other_transaction])
+    db.commit()
+
+    # Account and balance endpoints must not reveal another user's records.
+    assert client.get(f"/api/v1/accounts/{other_account.id}").status_code == 404
+    assert client.get(f"/api/v1/accounts/{other_account.id}/balance").status_code == 404
+
+    # Transaction detail must also be user-scoped.
+    assert client.get(f"/api/v1/transactions/{other_transaction.id}").status_code == 404
+
+    # Lists are scoped, even when a foreign account UUID is supplied as a filter.
+    visible_accounts = client.get("/api/v1/accounts").json()
+    assert all(item["id"] != str(other_account.id) for item in visible_accounts)
+
+    visible_transactions = client.get("/api/v1/transactions").json()
+    assert all(item["id"] != str(other_transaction.id) for item in visible_transactions)
+
+    filtered_transactions = client.get(
+        "/api/v1/transactions", params={"account_id": str(other_account.id)}
+    ).json()
+    assert filtered_transactions == []
+
