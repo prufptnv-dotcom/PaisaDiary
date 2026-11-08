@@ -9,7 +9,7 @@ from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.account import Account
 from app.models.category import Category
-from app.models.transaction import Transaction
+from app.models.transaction import Transaction, TransactionType
 from app.models.user import User
 from app.schemas.finance import TransactionCreate, TransactionResponse
 
@@ -56,7 +56,7 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
 @router.get("", response_model=list[TransactionResponse])
 def list_transactions(
     account_id: UUID | None = None,
-    transaction_type: str | None = Query(default=None, pattern="^(income|expense)$"),
+    transaction_type: TransactionType | None = None,
     start_at: datetime | None = None,
     end_at: datetime | None = None,
     limit: int = Query(default=100, ge=1, le=500),
