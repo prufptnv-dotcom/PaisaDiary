@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import get_current_user
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_db
 from app.models.user import User
@@ -10,6 +11,13 @@ from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserR
 from app.services.default_categories import seed_default_categories
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _token_response(user: User) -> TokenResponse:
+    token, expires_in = create_access_token(user.id, user.token_version)
+    return TokenResponse(access_token=token, expires_in=expires_in,
+                         user=UserResponse(id=str(user.id), email=user.email,
+                                          display_name=user.display_name))
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -31,10 +39,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenRe
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    token, expires_in = create_access_token(user.id)
-    return TokenResponse(access_token=token, expires_in=expires_in,
-                         user=UserResponse(id=str(user.id), email=user.email,
-                                          display_name=user.display_name))
+    return _token_response(user)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -45,7 +50,12 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
                             detail="Invalid email or password",
                             headers={"WWW-Authenticate": "Bearer"})
 
-    token, expires_in = create_access_token(user.id)
-    return TokenResponse(access_token=token, expires_in=expires_in,
-                         user=UserResponse(id=str(user.id), email=user.email,
-                                          display_name=user.display_name))
+    return _token_response(user)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    # Version bump invalidates every previously issued access token for this user.
+    user.token_version += 1
+    db.add(user)
+    db.commit()
