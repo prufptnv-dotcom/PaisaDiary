@@ -12,7 +12,7 @@
 - [x] Password hashing (Argon2) and JWT access tokens
 - [x] Registration/login, current-user authorization dependency
 - [x] Seeded default income and expense categories at registration
-- [x] Category list/create APIs
+- [x] Category list/create/update/deactivate APIs
 - [x] Account create/list/get/update APIs
 - [x] Account balance endpoint
 - [x] Transaction create/list/detail endpoints
@@ -33,6 +33,9 @@
 - `GET /api/v1/transactions/summary`
 
 ## Latest increment (2026-11-08)
+- Added PATCH category endpoint for user-scoped rename and active/inactive toggling; duplicate category names are rejected within user+kind.
+- Transaction creation now rejects inactive categories; historical transactions remain linked to the category.
+- Added API tests for category rename/deactivation, inactive-category assignment rejection, and duplicate-name conflict.
 - Added regression coverage proving another user's account, balance, transaction detail, and transaction list are not exposed.
 - Test commit: `1141cb3d4fc8b7a92e0d760b86c4c247ede24bd4`
 - The test is committed but has not been executed locally or confirmed green in GitHub Actions.
@@ -48,7 +51,7 @@ Tests have not been executed from this environment because the runtime cannot re
 ## Still remaining in Phase 1
 - [ ] Verify/fix CI failures
 - [ ] Transaction update/reversal with audit trail
-- [ ] Category update/deactivation
+- [x] Category update/deactivation (CI execution pending)
 - [x] Cross-user authorization regression tests added (CI execution pending)
 - [ ] API pagination/validation consistency
 - [ ] Rate limiting and registration abuse prevention
