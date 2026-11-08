@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -10,10 +10,36 @@ from app.db.session import get_db
 from app.models.account import Account
 from app.models.category import Category
 from app.models.transaction import Transaction, TransactionType
+from app.models.transaction_audit import TransactionAudit
 from app.models.user import User
-from app.schemas.finance import TransactionCreate, TransactionResponse
+from app.schemas.finance import (TransactionCreate, TransactionResponse, TransactionUpdate, TransactionReverse, TransactionAuditResponse)
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
+
+def _snapshot(transaction: Transaction) -> dict:
+    return {
+        "id": str(transaction.id),
+        "user_id": str(transaction.user_id),
+        "account_id": str(transaction.account_id),
+        "category_id": str(transaction.category_id) if transaction.category_id else None,
+        "transaction_type": transaction.transaction_type.value,
+        "amount_paise": transaction.amount_paise,
+        "currency": transaction.currency,
+        "description": transaction.description,
+        "notes": transaction.notes,
+        "occurred_at": transaction.occurred_at.isoformat() if transaction.occurred_at else None,
+        "is_reversed": transaction.is_reversed,
+        "reversal_of_id": str(transaction.reversal_of_id) if transaction.reversal_of_id else None,
+    }
+
+
+def _audit(db: Session, user_id: UUID, transaction_id: UUID, event_type: str,
+           reason: str | None, before: dict | None, after: dict | None) -> None:
+    db.add(TransactionAudit(
+        user_id=user_id, transaction_id=transaction_id, event_type=event_type,
+        reason=reason, before_snapshot=before, after_snapshot=after,
+    ))
+
 
 
 @router.post("", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
@@ -48,6 +74,8 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
         occurred_at=payload.occurred_at or datetime.now().astimezone(),
     )
     db.add(transaction)
+    db.flush()
+    _audit(db, current_user.id, transaction.id, "created", None, None, _snapshot(transaction))
     db.commit()
     db.refresh(transaction)
     return transaction
