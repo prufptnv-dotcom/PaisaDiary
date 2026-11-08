@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
@@ -75,3 +75,47 @@ def list_transactions(
         query = query.where(Transaction.occurred_at <= end_at)
     query = query.order_by(Transaction.occurred_at.desc()).limit(limit).offset(offset)
     return list(db.scalars(query).all())
+
+
+@router.get("/{transaction_id}", response_model=TransactionResponse)
+def get_transaction(transaction_id: UUID, db: Session = Depends(get_db),
+                    current_user: User = Depends(get_current_user)) -> Transaction:
+    transaction = db.scalar(select(Transaction).where(
+        Transaction.id == transaction_id, Transaction.user_id == current_user.id
+    ))
+    if transaction is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return transaction
+
+
+@router.get("/summary", response_model=dict[str, int | str])
+def transaction_summary(
+    currency: str = Query(default="INR", min_length=3, max_length=3),
+    start_at: datetime | None = None,
+    end_at: datetime | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, int | str]:
+    query = select(
+        func.coalesce(func.sum(case(
+            (Transaction.transaction_type == TransactionType.INCOME, Transaction.amount_paise),
+            else_=0,
+        )), 0).label("income"),
+        func.coalesce(func.sum(case(
+            (Transaction.transaction_type == TransactionType.EXPENSE, Transaction.amount_paise),
+            else_=0,
+        )), 0).label("expense"),
+    ).where(Transaction.user_id == current_user.id, Transaction.currency == currency.upper())
+    if start_at is not None:
+        query = query.where(Transaction.occurred_at >= start_at)
+    if end_at is not None:
+        query = query.where(Transaction.occurred_at <= end_at)
+
+    row = db.execute(query).one()
+    income_paise, expense_paise = int(row.income), int(row.expense)
+    return {
+        "currency": currency.upper(),
+        "income_paise": income_paise,
+        "expense_paise": expense_paise,
+        "net_cash_flow_paise": income_paise - expense_paise,
+    }
