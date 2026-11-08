@@ -57,3 +57,33 @@ def test_login_rejects_wrong_password() -> None:
         "password": "incorrect-password",
     })
     assert response.status_code == 401
+
+
+def test_logout_revokes_access_token() -> None:
+    email = "vikash-session-revoke@example.com"
+    registration = client.post("/api/v1/auth/register", json={
+        "email": email,
+        "display_name": "Session Test",
+        "password": "correct-horse-battery-2026",
+    })
+    assert registration.status_code == 201
+    token = registration.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # The newly issued token is valid before logout.
+    assert client.get("/api/v1/accounts", headers=headers).status_code == 200
+
+    logout = client.post("/api/v1/auth/logout", headers=headers)
+    assert logout.status_code == 204
+
+    # Logout increments token_version; the old bearer token is no longer accepted.
+    assert client.get("/api/v1/accounts", headers=headers).status_code == 401
+
+    # Login issues a token with the new version and remains functional.
+    login = client.post("/api/v1/auth/login", json={
+        "email": email,
+        "password": "correct-horse-battery-2026",
+    })
+    assert login.status_code == 200
+    fresh_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    assert client.get("/api/v1/accounts", headers=fresh_headers).status_code == 200
