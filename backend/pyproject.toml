@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "paisadiary-api"
 version = "0.1.0"
@@ -26,3 +30,9 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["alembic*", "tests*"]
