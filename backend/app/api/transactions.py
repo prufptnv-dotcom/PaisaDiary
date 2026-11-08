@@ -77,17 +77,6 @@ def list_transactions(
     return list(db.scalars(query).all())
 
 
-@router.get("/{transaction_id}", response_model=TransactionResponse)
-def get_transaction(transaction_id: UUID, db: Session = Depends(get_db),
-                    current_user: User = Depends(get_current_user)) -> Transaction:
-    transaction = db.scalar(select(Transaction).where(
-        Transaction.id == transaction_id, Transaction.user_id == current_user.id
-    ))
-    if transaction is None:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    return transaction
-
-
 @router.get("/summary", response_model=dict[str, int | str])
 def transaction_summary(
     currency: str = Query(default="INR", min_length=3, max_length=3),
@@ -119,3 +108,16 @@ def transaction_summary(
         "expense_paise": expense_paise,
         "net_cash_flow_paise": income_paise - expense_paise,
     }
+
+
+@router.get("/{transaction_id}", response_model=TransactionResponse)
+def get_transaction(transaction_id: UUID, db: Session = Depends(get_db),
+                    current_user: User = Depends(get_current_user)) -> Transaction:
+    transaction = db.scalar(select(Transaction).where(
+        Transaction.id == transaction_id, Transaction.user_id == current_user.id
+    ))
+    if transaction is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return transaction
+
+
