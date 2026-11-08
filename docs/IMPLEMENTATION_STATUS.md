@@ -32,6 +32,11 @@
 - `GET /api/v1/transactions/{transaction_id}`
 - `GET /api/v1/transactions/summary`
 
+## Latest increment (2026-11-08)
+- Added regression coverage proving another user's account, balance, transaction detail, and transaction list are not exposed.
+- Test commit: `1141cb3d4fc8b7a92e0d760b86c4c247ede24bd4`
+- The test is committed but has not been executed locally or confirmed green in GitHub Actions.
+
 ## Verification
 - [x] CI workflow includes PostgreSQL service and migration step
 - [x] Source files committed and selected files verified from GitHub
@@ -44,7 +49,7 @@ Tests have not been executed from this environment because the runtime cannot re
 - [ ] Verify/fix CI failures
 - [ ] Transaction update/reversal with audit trail
 - [ ] Category update/deactivation
-- [ ] Cross-user authorization regression tests
+- [x] Cross-user authorization regression tests added (CI execution pending)
 - [ ] API pagination/validation consistency
 - [ ] Rate limiting and registration abuse prevention
 - [ ] Token refresh/revocation/session strategy
