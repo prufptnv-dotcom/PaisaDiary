@@ -1,58 +1,74 @@
 # PaisaDiary Implementation Status
 
-**Canonical specification:** [PRODUCT_BLUEPRINT.md](./PRODUCT_BLUEPRINT.md)  
-**Active branch:** `feat/phase-1-foundation`  
-**Current phase:** Phase 1 — Financial Foundation
+**Canonical spec:** [PRODUCT_BLUEPRINT.md](./PRODUCT_BLUEPRINT.md)  
+**Branch:** `feat/phase-1-foundation`  
+**Phase:** Phase 1 — Financial Foundation
 
-## Progress
+## Completed increments
 
-### Increment 0 — Product specification
-- [x] Canonical product blueprint committed
-- [x] Feature branch established
-- [x] Existing repository inspected
-
-### Increment 1 — Backend scaffold
-- [x] FastAPI application, settings, health endpoints
+### Backend scaffold
+- [x] FastAPI app, settings, health endpoints
 - [x] PostgreSQL Docker Compose and .env template
-- [x] pytest tests and CI workflow
-- [ ] CI run observed green
+- [x] CI workflow (PostgreSQL service + migrations + pytest)
 
-### Increment 2 — Persistence and initial finance domain
-- [x] SQLAlchemy base and session factory
-- [x] User, account, category, transaction models
-- [x] Integer paise amount storage and positive amount constraint
-- [x] Income/expense semantics and balance service
-- [x] Initial Alembic configuration and schema migration
-- [x] Database-backed readiness probe
-- [ ] Migration run against actual PostgreSQL
-- [ ] DB integration test run verified
+### Persistence and finance domain
+- [x] SQLAlchemy base/session
+- [x] User, account, category, transaction ORM models
+- [x] Integer paise backed by BigInteger
+- [x] Initial Alembic schema migration
+- [x] Deterministic user-scoped account balance calculation
+- [x] Database readiness check
 
-### Increment 3 — Authentication foundation
-- [x] Registration endpoint
-- [x] Login endpoint
-- [x] Argon2 password hashing via pwdlib
-- [x] Short-lived JWT access token (15 minutes)
-- [x] Current-user token validation dependency
-- [x] Auth API tests added
-- [ ] CI/test execution verified
-- [ ] Refresh token/session revocation (later security increment)
+### Authentication
+- [x] Registration and login endpoints
+- [x] Argon2 password hashing
+- [x] JWT access tokens (15-minute expiry)
+- [x] Current-user dependency
+- [x] Reject default JWT secret in production config
 
-## Current API
+### Authenticated finance APIs
+- [x] Account create/list/get/update
+- [x] Account balance endpoint
+- [x] Transaction create/list with filters
+- [x] Ownership validation for account/category/transaction access
+- [x] Currency must match selected account
+- [x] Transaction category type must match income/expense
+
+## API endpoints currently implemented
 - `GET /`
 - `GET /api/v1/health`
-- `GET /api/v1/ready` — checks PostgreSQL with `SELECT 1`
+- `GET /api/v1/ready`
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
+- `POST /api/v1/accounts`
+- `GET /api/v1/accounts`
+- `GET /api/v1/accounts/{account_id}`
+- `PATCH /api/v1/accounts/{account_id}`
+- `GET /api/v1/accounts/{account_id}/balance`
+- `POST /api/v1/transactions`
+- `GET /api/v1/transactions`
 
-## Important limitations / next steps
-- Account and transaction CRUD APIs are not yet exposed.
-- JWT secret has a development-only default. Set a strong `JWT_SECRET_KEY` in `.env` before deployment; do not use the default in production.
-- No local test runner or PostgreSQL instance has been executed from this environment. CI is configured, but results must be checked before calling the implementation verified.
-- Registration currently has no email verification or rate limiting. Add abuse protection before public production deployment.
+## Verification status
+- [x] Unit/API test files added
+- [x] CI workflow configured to run PostgreSQL migration and pytest
+- [ ] GitHub Actions run confirmed green
+- [ ] Local/PostgreSQL tests manually verified
 
-## Financial architecture decisions
-- Store monetary amounts as integer paise, never binary floats.
-- Transaction amount is a positive magnitude; transaction type determines direction.
-- Transfers, loans, repayments, and refunds need explicit semantics before implementing those endpoints.
-- AI must not calculate authoritative balances or change financial records without user intent.
-- Every finance endpoint must scope records to the authenticated user.
+**Important:** Code has been committed to GitHub, but tests have not yet been executed in this assistant environment. Do not label the branch production-ready.
+
+## Remaining Phase 1 work
+- [ ] Verify CI results and fix any failures
+- [ ] Category list/create endpoints and default categories
+- [ ] Transaction detail/update/reversal workflow
+- [ ] Summary endpoint (income, expense, net cash flow)
+- [ ] Authorization regression tests for cross-user access
+- [ ] API docs and error response consistency
+- [ ] Security hardening (rate limiting, token/session revocation, email verification)
+- [ ] Review and create PR; keep main unchanged until review
+
+## Financial rules
+- Money: integer paise / PostgreSQL BigInteger, never floats.
+- Transaction amount is positive magnitude; type determines add/subtract.
+- Transfers, refunds, loans and repayments require explicit models/semantics.
+- AI never owns authoritative arithmetic.
+- Every finance query must be scoped to authenticated user.
