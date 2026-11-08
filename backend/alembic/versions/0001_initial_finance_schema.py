@@ -17,11 +17,6 @@ transaction_type = sa.Enum("EXPENSE", "INCOME", name="transactiontype")
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    account_type.create(bind, checkfirst=True)
-    category_kind.create(bind, checkfirst=True)
-    transaction_type.create(bind, checkfirst=True)
-
     op.create_table(
         "users",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -93,7 +88,3 @@ def downgrade() -> None:
     op.drop_table("accounts")
     op.drop_index("ix_users_email", table_name="users")
     op.drop_table("users")
-    bind = op.get_bind()
-    transaction_type.drop(bind, checkfirst=True)
-    category_kind.drop(bind, checkfirst=True)
-    account_type.drop(bind, checkfirst=True)
