@@ -31,7 +31,7 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
     if payload.category_id is not None:
         category = db.scalar(select(Category).where(
             Category.id == payload.category_id, Category.user_id == current_user.id,
-            Category.kind == payload.transaction_type,
+            Category.kind == payload.transaction_type, Category.is_active.is_(True),
         ))
         if category is None:
             raise HTTPException(status_code=404, detail="Category not found for this transaction type")
