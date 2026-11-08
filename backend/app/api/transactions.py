@@ -199,6 +199,9 @@ def reverse_transaction(
         raise HTTPException(status_code=409, detail="Transaction has already been reversed")
     if original.reversal_of_id is not None:
         raise HTTPException(status_code=409, detail="A reversal transaction cannot itself be reversed")
+    reason = payload.reason.strip()
+    if len(reason) < 3:
+        raise HTTPException(status_code=422, detail="Reversal reason must contain at least 3 non-whitespace characters")
 
     before = _snapshot(original)
     original.is_reversed = True
@@ -212,8 +215,8 @@ def reverse_transaction(
     )
     db.add(reversal)
     db.flush()
-    _audit(db, current_user.id, original.id, "reversed", payload.reason.strip(), before, _snapshot(original))
-    _audit(db, current_user.id, reversal.id, "reversal_created", payload.reason.strip(), None, _snapshot(reversal))
+    _audit(db, current_user.id, original.id, "reversed", reason, before, _snapshot(original))
+    _audit(db, current_user.id, reversal.id, "reversal_created", reason, None, _snapshot(reversal))
     db.commit()
     db.refresh(reversal)
     return reversal
