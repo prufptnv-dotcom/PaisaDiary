@@ -4,71 +4,55 @@
 **Branch:** `feat/phase-1-foundation`  
 **Phase:** Phase 1 — Financial Foundation
 
-## Completed increments
-
-### Backend scaffold
-- [x] FastAPI app, settings, health endpoints
-- [x] PostgreSQL Docker Compose and .env template
-- [x] CI workflow (PostgreSQL service + migrations + pytest)
-
-### Persistence and finance domain
-- [x] SQLAlchemy base/session
-- [x] User, account, category, transaction ORM models
-- [x] Integer paise backed by BigInteger
-- [x] Initial Alembic schema migration
-- [x] Deterministic user-scoped account balance calculation
-- [x] Database readiness check
-
-### Authentication
-- [x] Registration and login endpoints
-- [x] Argon2 password hashing
-- [x] JWT access tokens (15-minute expiry)
-- [x] Current-user dependency
-- [x] Reject default JWT secret in production config
-
-### Authenticated finance APIs
-- [x] Account create/list/get/update
+## Implemented
+- [x] FastAPI scaffold, config, health/readiness probes
+- [x] PostgreSQL Docker Compose and Alembic initial migration
+- [x] SQLAlchemy models: user, account, category, transaction
+- [x] Integer paise amounts backed by BigInteger
+- [x] Password hashing (Argon2) and JWT access tokens
+- [x] Registration/login, current-user authorization dependency
+- [x] Seeded default income and expense categories at registration
+- [x] Category list/create APIs
+- [x] Account create/list/get/update APIs
 - [x] Account balance endpoint
-- [x] Transaction create/list with filters
-- [x] Ownership validation for account/category/transaction access
-- [x] Currency must match selected account
-- [x] Transaction category type must match income/expense
+- [x] Transaction create/list/detail endpoints
+- [x] Transaction summary (income, expense, net cash flow)
+- [x] Account/category ownership checks and account-currency validation
+- [x] CI configured with PostgreSQL, Alembic migration, and pytest
+- [x] Test files added for health, auth, money invariants, and finance APIs
 
-## API endpoints currently implemented
-- `GET /`
-- `GET /api/v1/health`
-- `GET /api/v1/ready`
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/accounts`
-- `GET /api/v1/accounts`
-- `GET /api/v1/accounts/{account_id}`
-- `PATCH /api/v1/accounts/{account_id}`
+## API routes
+- `GET /api/v1/health`, `GET /api/v1/ready`
+- `POST /api/v1/auth/register`, `POST /api/v1/auth/login`
+- `GET/POST /api/v1/categories`
+- `GET/POST /api/v1/accounts`
+- `GET/PATCH /api/v1/accounts/{account_id}`
 - `GET /api/v1/accounts/{account_id}/balance`
-- `POST /api/v1/transactions`
-- `GET /api/v1/transactions`
+- `GET/POST /api/v1/transactions`
+- `GET /api/v1/transactions/{transaction_id}`
+- `GET /api/v1/transactions/summary`
 
-## Verification status
-- [x] Unit/API test files added
-- [x] CI workflow configured to run PostgreSQL migration and pytest
-- [ ] GitHub Actions run confirmed green
-- [ ] Local/PostgreSQL tests manually verified
+## Verification
+- [x] CI workflow includes PostgreSQL service and migration step
+- [x] Source files committed and selected files verified from GitHub
+- [ ] GitHub Actions green run confirmed
+- [ ] Local test run confirmed
 
-**Important:** Code has been committed to GitHub, but tests have not yet been executed in this assistant environment. Do not label the branch production-ready.
+Tests have not been executed from this environment because the runtime cannot resolve GitHub / install dependencies. Do not treat this code as production-ready until CI passes and a security review is completed.
 
-## Remaining Phase 1 work
-- [ ] Verify CI results and fix any failures
-- [ ] Category list/create endpoints and default categories
-- [ ] Transaction detail/update/reversal workflow
-- [ ] Summary endpoint (income, expense, net cash flow)
-- [ ] Authorization regression tests for cross-user access
-- [ ] API docs and error response consistency
-- [ ] Security hardening (rate limiting, token/session revocation, email verification)
-- [ ] Review and create PR; keep main unchanged until review
+## Still remaining in Phase 1
+- [ ] Verify/fix CI failures
+- [ ] Transaction update/reversal with audit trail
+- [ ] Category update/deactivation
+- [ ] Cross-user authorization regression tests
+- [ ] API pagination/validation consistency
+- [ ] Rate limiting and registration abuse prevention
+- [ ] Token refresh/revocation/session strategy
+- [ ] PR review before merging to main
 
-## Financial rules
-- Money: integer paise / PostgreSQL BigInteger, never floats.
-- Transaction amount is positive magnitude; type determines add/subtract.
-- Transfers, refunds, loans and repayments require explicit models/semantics.
-- AI never owns authoritative arithmetic.
-- Every finance query must be scoped to authenticated user.
+## Finance invariants
+- Integer paise only; never binary float.
+- Positive amount magnitude; income adds, expense subtracts.
+- Summaries filter currency; never combine different currencies.
+- All financial endpoints require authenticated user scope.
+- Transfer, loan, repayment, refund semantics are not implemented yet.
