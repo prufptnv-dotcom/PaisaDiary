@@ -27,22 +27,27 @@ Before starting a new task, review the Product Blueprint and this status file. I
 - [ ] CI run observed and green
 - [ ] Local tests executed (not yet run in this environment)
 
-### Increment 2 — Persistence and financial domain (next)
-- [ ] SQLAlchemy database engine/session
-- [ ] Alembic migration configuration
-- [ ] User, account, category, transaction models
-- [ ] Money represented in integer paise
-- [ ] Transaction type/validation rules
-- [ ] Account balance calculation service
+### Increment 2 — Initial persistence/domain foundation
+- [x] SQLAlchemy declarative base and DB session factory
+- [x] User, account, category, transaction ORM models
+- [x] Integer-paise transaction amounts
+- [x] Positive transaction amount database constraint
+- [x] Income/expense transaction types
+- [x] User-scoped deterministic account balance query
+- [x] Basic money invariant tests
+- [ ] Alembic migration configuration and initial migration
 - [ ] Database integration tests
+- [ ] Authenticated API endpoints and ownership validation
 
 ## Known limitations
 - Authentication is not implemented yet.
 - The readiness endpoint does not currently check PostgreSQL connectivity.
-- No financial CRUD endpoints exist yet.
+- Financial CRUD endpoints do not exist yet.
+- Balance logic is present as a service but is not yet exposed through a secured API.
 - No test results should be considered verified until CI or a local test run completes.
 
 ## Decision log
 - Backend uses Python 3.11+, FastAPI, SQLAlchemy 2.x, PostgreSQL, and Alembic.
-- Financial amounts will use integer paise, not floating-point.
+- Financial amounts use integer paise, not floating-point.
+- Transaction amount is a positive magnitude; transaction type determines whether it adds to or subtracts from account balance.
 - Keep AI/model integrations out of the core ledger and transaction calculations.
