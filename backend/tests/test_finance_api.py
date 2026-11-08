@@ -196,3 +196,89 @@ def test_category_update_rejects_duplicate_name() -> None:
     })
     assert duplicate.status_code == 409
 
+def test_transaction_update_reversal_and_audit_history() -> None:
+    account_response = client.post("/api/v1/accounts", json={
+        "name": "Audit Flow Cash",
+        "account_type": "cash",
+        "opening_balance_paise": 0,
+        "currency": "INR",
+    })
+    assert account_response.status_code == 201
+    account_id = account_response.json()["id"]
+
+    created = client.post("/api/v1/transactions", json={
+        "account_id": account_id,
+        "transaction_type": "income",
+        "amount_paise": 20_000,
+        "currency": "INR",
+        "description": "Initial payment",
+    })
+    assert created.status_code == 201
+    transaction_id = created.json()["id"]
+
+    updated = client.patch(f"/api/v1/transactions/{transaction_id}", json={
+        "amount_paise": 25_000,
+        "description": "Corrected payment",
+    })
+    assert updated.status_code == 200
+    assert updated.json()["amount_paise"] == 25_000
+    assert updated.json()["description"] == "Corrected payment"
+
+    balance_after_update = client.get(f"/api/v1/accounts/{account_id}/balance")
+    assert balance_after_update.json()["balance_paise"] == 25_000
+
+    reversal = client.post(f"/api/v1/transactions/{transaction_id}/reverse", json={
+        "reason": "Entered income in error",
+    })
+    assert reversal.status_code == 201
+    assert reversal.json()["transaction_type"] == "expense"
+    assert reversal.json()["amount_paise"] == 25_000
+    assert reversal.json()["reversal_of_id"] == transaction_id
+
+    original = client.get(f"/api/v1/transactions/{transaction_id}")
+    assert original.status_code == 200
+    assert original.json()["is_reversed"] is True
+
+    balance_after_reversal = client.get(f"/api/v1/accounts/{account_id}/balance")
+    assert balance_after_reversal.json()["balance_paise"] == 0
+
+    duplicate_reversal = client.post(f"/api/v1/transactions/{transaction_id}/reverse", json={
+        "reason": "Trying to reverse again",
+    })
+    assert duplicate_reversal.status_code == 409
+
+    audit = client.get(f"/api/v1/transactions/{transaction_id}/audit")
+    assert audit.status_code == 200
+    event_types = [item["event_type"] for item in audit.json()]
+    assert event_types == ["created", "updated", "reversed"]
+    assert audit.json()[1]["before_snapshot"]["amount_paise"] == 20_000
+    assert audit.json()[1]["after_snapshot"]["amount_paise"] == 25_000
+
+
+def test_reversal_and_audit_endpoints_are_user_scoped() -> None:
+    from app.models.account import Account, AccountType
+    from app.models.transaction import Transaction, TransactionType
+
+    foreign_user = User(
+        id=uuid4(), email=f"foreign-audit-{uuid4()}@example.com",
+        display_name="Foreign Audit User", password_hash="test-hash",
+    )
+    foreign_account = Account(
+        id=uuid4(), user_id=foreign_user.id, name="Foreign Account",
+        account_type=AccountType.CASH, currency="INR",
+        opening_balance_paise=0, is_active=True,
+    )
+    foreign_transaction = Transaction(
+        id=uuid4(), user_id=foreign_user.id, account_id=foreign_account.id,
+        transaction_type=TransactionType.INCOME, amount_paise=500,
+        currency="INR", description="Foreign transaction",
+    )
+    db.add_all([foreign_user, foreign_account, foreign_transaction])
+    db.commit()
+
+    assert client.post(
+        f"/api/v1/transactions/{foreign_transaction.id}/reverse",
+        json={"reason": "Should be forbidden"},
+    ).status_code == 404
+    assert client.get(f"/api/v1/transactions/{foreign_transaction.id}/audit").status_code == 404
+
