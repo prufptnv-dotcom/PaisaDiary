@@ -44,6 +44,12 @@
 - Test commit: `1141cb3d4fc8b7a92e0d760b86c4c247ede24bd4`
 - The test is committed but has not been executed locally or confirmed green in GitHub Actions.
 
+## Latest security increment (2026-11-08)
+- Added `users.token_version` via Alembic migration `0003_user_token_version`.
+- Access JWTs include a version claim; protected requests reject stale or malformed versions.
+- Added `POST /api/v1/auth/logout`; it increments the user's token version and invalidates all previously issued access tokens for that user.
+- Added regression test for logout → old token rejected → fresh login token works. CI execution for this increment is pending.
+
 ## Verification
 - [x] CI workflow includes PostgreSQL service and migration step
 - [x] Source files committed and selected files verified from GitHub
@@ -59,7 +65,7 @@ GitHub Actions verified the feature branch with PostgreSQL migration upgrade and
 - [x] Cross-user authorization regression tests added (CI execution pending)
 - [ ] API pagination/validation consistency
 - [ ] Rate limiting and registration abuse prevention
-- [ ] Token refresh/revocation/session strategy
+- [x] Access-token revocation via database-backed `token_version` and logout endpoint (refresh-token rotation still planned)
 - [ ] PR review before merging to main
 
 ## Finance invariants
