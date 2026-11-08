@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -33,6 +33,10 @@ class Transaction(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    )
+    is_reversed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    reversal_of_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("transactions.id", ondelete="RESTRICT"), nullable=True, unique=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
